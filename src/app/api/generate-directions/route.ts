@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { openai } from '@/lib/openai';
+import { gemini } from '@/lib/gemini';
 
 const SYSTEM_PROMPT = `You are a gentle guide helping someone explore their goals without pressure.
 You suggest directions — not tasks. You illuminate possibilities — not obligations.
@@ -25,9 +25,9 @@ Respond with valid JSON only, no markdown formatting:
 
 export async function POST(request: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: 'OpenAI API key is not configured' },
+        { error: 'Gemini API key is not configured' },
         { status: 503 }
       );
     }
@@ -56,18 +56,12 @@ ${goalDescription ? `More about this: ${goalDescription}` : ''}
 What directions might I explore from here?`;
     }
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature: 0.8,
-      max_tokens: 1000,
-      response_format: { type: 'json_object' },
-    });
+    const fullPrompt = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
 
-    const content = completion.choices[0]?.message?.content;
+    const result = await gemini.generateContent(fullPrompt);
+    const response = result.response;
+    const content = response.text();
+
     if (!content) {
       return NextResponse.json(
         { error: 'No response from AI' },
