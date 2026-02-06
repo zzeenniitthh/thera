@@ -32,13 +32,18 @@ const edgeTypes = {
 
 function CompassMapInner() {
   const router = useRouter();
-  const goal = useGoalStore((s) => s.getActiveGoal());
-  const directions = useDirectionStore((s) =>
-    goal ? s.getDirectionsForGoal(goal.id) : []
-  );
+  const goals = useGoalStore((s) => s.goals);
+  const activeGoalId = useGoalStore((s) => s.activeGoalId);
+  const allDirections = useDirectionStore((s) => s.directions);
   const updateDirection = useDirectionStore((s) => s.updateDirection);
   const { fitView } = useReactFlow();
   const [initialized, setInitialized] = useState(false);
+
+  const goal = useMemo(() => goals.find((g) => g.id === activeGoalId), [goals, activeGoalId]);
+  const directions = useMemo(() =>
+    goal ? allDirections.filter((d) => d.goalId === goal.id) : [],
+    [goal, allDirections]
+  );
 
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
     if (!goal) return { nodes: [] as CompassNodeType[], edges: [] as CosmicEdgeType[] };

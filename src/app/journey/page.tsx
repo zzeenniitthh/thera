@@ -1,12 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { useExplorationStore } from '@/stores/explorationStore';
 import { useDirectionStore } from '@/stores/directionStore';
 import { useGoalStore } from '@/stores/goalStore';
-import { useHydration } from '@/hooks/useHydration';
 import { LANGUAGE } from '@/lib/constants';
 import { PageTransition } from '@/components/layout/PageTransition';
 
@@ -26,13 +26,20 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function JourneyPage() {
-  const hydrated = useHydration();
   const router = useRouter();
-  const sessions = useExplorationStore((s) => s.getAllSessions());
-  const getDirection = useDirectionStore((s) => s.getDirection);
+  const allSessions = useExplorationStore((s) => s.sessions);
+  const hasHydrated = useExplorationStore((s) => s._hasHydrated);
+  const allDirections = useDirectionStore((s) => s.directions);
   const goals = useGoalStore((s) => s.goals);
 
-  if (!hydrated) {
+  const sessions = useMemo(() =>
+    [...allSessions].sort(
+      (a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()
+    ),
+    [allSessions]
+  );
+
+  if (!hasHydrated) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse-glow" />
@@ -66,7 +73,7 @@ export default function JourneyPage() {
 
             <div className="space-y-4">
               {sessions.map((session, i) => {
-                const direction = getDirection(session.directionId);
+                const direction = allDirections.find((d) => d.id === session.directionId);
                 if (!direction) return null;
 
                 const goal = goals.find((g) => g.id === direction.goalId);

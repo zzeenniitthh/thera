@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -14,8 +14,14 @@ export function CompassControls({ goalId }: { goalId: string }) {
   const isGenerating = useUIStore((s) => s.isGenerating);
   const setGenerating = useUIStore((s) => s.setGenerating);
   const addDirections = useDirectionStore((s) => s.addDirections);
-  const goal = useGoalStore((s) => s.goals.find((g) => g.id === goalId));
-  const directions = useDirectionStore((s) => s.getDirectionsForGoal(goalId));
+  const goals = useGoalStore((s) => s.goals);
+  const allDirections = useDirectionStore((s) => s.directions);
+
+  const goal = useMemo(() => goals.find((g) => g.id === goalId), [goals, goalId]);
+  const directions = useMemo(() =>
+    allDirections.filter((d) => d.goalId === goalId),
+    [allDirections, goalId]
+  );
 
   const [showManual, setShowManual] = useState(false);
   const [manualTitle, setManualTitle] = useState('');
@@ -40,7 +46,7 @@ export function CompassControls({ goalId }: { goalId: string }) {
 
       const data = await res.json();
       const newDirections = data.directions.map(
-        (d: { title: string; description: string }, i: number) => ({
+        (d: { title: string; description: string }) => ({
           goalId: goal.id,
           parentId: null,
           title: d.title,

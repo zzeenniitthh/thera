@@ -1,8 +1,8 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { use } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { TextArea } from '@/components/ui/TextArea';
@@ -10,32 +10,45 @@ import { useDirectionStore } from '@/stores/directionStore';
 import { useGoalStore } from '@/stores/goalStore';
 import { useUIStore } from '@/stores/uiStore';
 import { useExplorationStore } from '@/stores/explorationStore';
-import { useHydration } from '@/hooks/useHydration';
 import { LANGUAGE } from '@/lib/constants';
 import { PageTransition } from '@/components/layout/PageTransition';
 
 export default function DirectionDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const hydrated = useHydration();
 
-  const direction = useDirectionStore((s) => s.getDirection(params.id));
+  const allDirections = useDirectionStore((s) => s.directions);
   const setStatus = useDirectionStore((s) => s.setDirectionStatus);
   const updateNotes = useDirectionStore((s) => s.updateNotes);
   const addDirections = useDirectionStore((s) => s.addDirections);
-  const children = useDirectionStore((s) =>
-    direction ? s.getDirectionsByParent(direction.id, direction.goalId) : []
-  );
-  const goal = useGoalStore((s) =>
-    direction ? s.goals.find((g) => g.id === direction.goalId) : undefined
-  );
-  const sessions = useExplorationStore((s) =>
-    direction ? s.getSessionsForDirection(direction.id) : []
-  );
+  const hasHydrated = useDirectionStore((s) => s._hasHydrated);
+
+  const goals = useGoalStore((s) => s.goals);
+  const allSessions = useExplorationStore((s) => s.sessions);
   const isGenerating = useUIStore((s) => s.isGenerating);
   const setGenerating = useUIStore((s) => s.setGenerating);
 
-  if (!hydrated) {
+  const direction = useMemo(() =>
+    allDirections.find((d) => d.id === params.id),
+    [allDirections, params.id]
+  );
+
+  const children = useMemo(() =>
+    direction ? allDirections.filter((d) => d.parentId === direction.id && d.goalId === direction.goalId) : [],
+    [direction, allDirections]
+  );
+
+  const goal = useMemo(() =>
+    direction ? goals.find((g) => g.id === direction.goalId) : undefined,
+    [direction, goals]
+  );
+
+  const sessions = useMemo(() =>
+    direction ? allSessions.filter((s) => s.directionId === direction.id) : [],
+    [direction, allSessions]
+  );
+
+  if (!hasHydrated) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse-glow" />
@@ -105,8 +118,8 @@ export default function DirectionDetailPage() {
     direction.status === 'undiscovered'
       ? LANGUAGE.direction.beginExploring
       : direction.status === 'exploring'
-      ? LANGUAGE.direction.markExplored
-      : LANGUAGE.direction.revisit;
+        ? LANGUAGE.direction.markExplored
+        : LANGUAGE.direction.revisit;
 
   return (
     <PageTransition>

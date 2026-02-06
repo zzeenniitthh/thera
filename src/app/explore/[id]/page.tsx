@@ -1,26 +1,30 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { TextArea } from '@/components/ui/TextArea';
 import { useDirectionStore } from '@/stores/directionStore';
 import { useExplorationStore } from '@/stores/explorationStore';
-import { useHydration } from '@/hooks/useHydration';
 import { LANGUAGE } from '@/lib/constants';
 
 export default function ExplorationPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const hydrated = useHydration();
 
-  const direction = useDirectionStore((s) => s.getDirection(params.id));
+  const allDirections = useDirectionStore((s) => s.directions);
   const setStatus = useDirectionStore((s) => s.setDirectionStatus);
   const updateDirectionNotes = useDirectionStore((s) => s.updateNotes);
+  const hasHydrated = useDirectionStore((s) => s._hasHydrated);
 
   const startSession = useExplorationStore((s) => s.startSession);
   const endSession = useExplorationStore((s) => s.endSession);
+
+  const direction = useMemo(() =>
+    allDirections.find((d) => d.id === params.id),
+    [allDirections, params.id]
+  );
 
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -30,7 +34,7 @@ export default function ExplorationPage() {
 
   // Start session on mount
   useEffect(() => {
-    if (hydrated && direction && !sessionId) {
+    if (hasHydrated && direction && !sessionId) {
       const session = startSession(direction.id);
       setSessionId(session.id);
       startTimeRef.current = Date.now();
@@ -39,7 +43,7 @@ export default function ExplorationPage() {
         setStatus(direction.id, 'exploring');
       }
     }
-  }, [hydrated, direction, sessionId, startSession, setStatus]);
+  }, [hasHydrated, direction, sessionId, startSession, setStatus]);
 
   // Timer
   useEffect(() => {
@@ -63,7 +67,7 @@ export default function ExplorationPage() {
     router.push('/compass');
   }, [sessionId, notes, direction, endSession, updateDirectionNotes, router]);
 
-  if (!hydrated) {
+  if (!hasHydrated) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse-glow" />

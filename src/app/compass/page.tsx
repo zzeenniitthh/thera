@@ -1,25 +1,31 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { CompassMap } from '@/components/compass/CompassMap';
 import { useGoalStore } from '@/stores/goalStore';
-import { useHydration } from '@/hooks/useHydration';
 import { LANGUAGE } from '@/lib/constants';
 
 export default function CompassPage() {
-  const hydrated = useHydration();
+  const [isReady, setIsReady] = useState(false);
   const router = useRouter();
-  const activeGoal = useGoalStore((s) => s.getActiveGoal());
-  const hasGoals = useGoalStore((s) => s.goals.length > 0);
+  const goals = useGoalStore((s) => s.goals);
+  const activeGoalId = useGoalStore((s) => s.activeGoalId);
+  const hasHydrated = useGoalStore((s) => s._hasHydrated);
+
+  const activeGoal = goals.find((g) => g.id === activeGoalId);
 
   useEffect(() => {
-    if (hydrated && !hasGoals) {
-      router.replace('/new-goal');
+    if (hasHydrated) {
+      if (goals.length === 0) {
+        router.replace('/new-goal');
+      } else {
+        setIsReady(true);
+      }
     }
-  }, [hydrated, hasGoals, router]);
+  }, [hasHydrated, goals.length, router]);
 
-  if (!hydrated) {
+  if (!isReady) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse-glow" />
