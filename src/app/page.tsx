@@ -1,33 +1,35 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { useGoalStore } from '@/stores/goalStore';
-import { useHydration } from '@/hooks/useHydration';
 import { LANGUAGE } from '@/lib/constants';
 
 export default function HomePage() {
-  const hydrated = useHydration();
+  const [isReady, setIsReady] = useState(false);
   const router = useRouter();
-  const hasGoals = useGoalStore((s) => s.goals.length > 0);
+  const goals = useGoalStore((s) => s.goals);
+  const hasHydrated = useGoalStore((s) => s._hasHydrated);
 
   useEffect(() => {
-    if (hydrated && hasGoals) {
-      router.replace('/compass');
+    if (hasHydrated) {
+      if (goals.length > 0) {
+        router.replace('/compass');
+      } else {
+        setIsReady(true);
+      }
     }
-  }, [hydrated, hasGoals, router]);
+  }, [hasHydrated, goals.length, router]);
 
-  if (!hydrated) {
+  if (!isReady) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="w-3 h-3 rounded-full bg-white/30 animate-pulse-glow" />
       </div>
     );
   }
-
-  if (hasGoals) return null;
 
   return (
     <div className="h-screen flex flex-col items-center justify-center px-6">
