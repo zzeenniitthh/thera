@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  name      String?
+  goals     Goal[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Goal {
+  id          String      @id @default(cuid())
+  title       String
+  description String      @default("")
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  directions  Direction[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Direction {
+  id          String              @id @default(cuid())
+  title       String
+  description String              @default("")
+  status      DirectionStatus     @default(UNDISCOVERED)
+  notes       String              @default("")
+  positionX   Float               @default(0)
+  positionY   Float               @default(0)
+  depth       Int                 @default(0)
+  goalId      String
+  goal        Goal                @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  parentId    String?
+  parent      Direction?          @relation("DirectionTree", fields: [parentId], references: [id])
+  children    Direction[]         @relation("DirectionTree")
+  sessions    ExplorationSession[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model ExplorationSession {
+  id              String    @id @default(cuid())
+  directionId     String
+  direction       Direction @relation(fields: [directionId], references: [id], onDelete: Cascade)
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  durationMinutes Int?
+  notes           String    @default("")
+}
+
+enum DirectionStatus {
+  UNDISCOVERED
+  EXPLORING
+  EXPLORED
+}
