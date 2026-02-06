@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { StarField } from '@/components/ui/StarField';
 import { Navigation } from '@/components/layout/Navigation';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import './globals.css';
 
 const inter = Inter({
@@ -31,7 +32,9 @@ export default function RootLayout({
       >
         <StarField />
         <main className="relative z-10 min-h-screen pb-20">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
         <Navigation />
       </body>
